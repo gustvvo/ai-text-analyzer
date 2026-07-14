@@ -7,17 +7,18 @@ export const pool = new Pool({
   connectionString: config.DATABASE_URL,
 });
 
-function timeout(ms: number): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => reject(new Error("db check timed out")), ms);
-  });
-}
-
 export async function checkDbConnection(): Promise<boolean> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("db check timed out")), DB_CHECK_TIMEOUT_MS);
+  });
+
   try {
-    await Promise.race([pool.query("SELECT 1"), timeout(DB_CHECK_TIMEOUT_MS)]);
+    await Promise.race([pool.query("SELECT 1"), timeout]);
     return true;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
