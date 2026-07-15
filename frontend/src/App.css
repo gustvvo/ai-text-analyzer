@@ -152,7 +152,7 @@ textarea {
 
 input:hover:not(:disabled),
 textarea:hover:not(:disabled) {
-  border-color: #7d8998;
+  border-color: var(--color-text-tertiary);
 }
 
 textarea {
