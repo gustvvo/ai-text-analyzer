@@ -31,6 +31,12 @@ export function createApp(): Express {
   // error handler. Catches errors forwarded via next(err) from route
   // handlers (e.g. unexpected repository/DB failures).
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    // Malformed request bodies (body-parser SyntaxError) are client errors,
+    // not server failures — answer 400 instead of a misleading 500.
+    if (err instanceof SyntaxError && "status" in err && err.status === 400) {
+      res.status(400).json({ error: "Invalid JSON body" });
+      return;
+    }
     console.error("Unhandled error:", err instanceof Error ? err.message : err);
     res.status(500).json({ error: "Internal server error" });
   });

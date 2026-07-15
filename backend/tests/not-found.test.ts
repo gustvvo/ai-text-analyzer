@@ -13,3 +13,17 @@ describe("unknown routes", () => {
     expect(response.body).toEqual({ error: "Not found" });
   });
 });
+
+describe("malformed request bodies", () => {
+  it("returns a JSON 400 instead of a 500 when the body is not valid JSON", async () => {
+    const app = createApp();
+
+    const response = await request(app)
+      .post("/auth/login")
+      .set("content-type", "application/json")
+      .send("{not json");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "Invalid JSON body" });
+  });
+});
