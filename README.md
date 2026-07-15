@@ -176,15 +176,17 @@ Model choice is the dominant lever on variable cost — roughly a 37x spread bet
 
 ## Data, retention & PII
 
-**Stored:** per user, an email and a bcrypt password hash. Per analysis: the input text, the structured result (summary/category/confidence/key points/warnings), provider/model/prompt version, input/output token counts, status, a short generic error message on failure, and `reported_at` when a user has flagged the result.
+**Stored:** per user, an email and a bcrypt password hash. Per analysis: the input text, the structured result (summary/category/confidence/key points/warnings), provider/model/prompt version, input/output token counts, status, a short generic error message on failure, `reported_at` when a user has flagged the result, and a per-row replayable trace — `duration_ms`, `attempts`, and the provider's raw, pre-normalization/validation response text (`raw_response`). That last one is a deliberate reversal of an earlier decision to not persist raw provider output: it's kept for auditability and replay (diffing raw vs. normalized, debugging a bad or failed output after the fact), it is **never exposed via the API** (see Auditability, below, and `analysis.router.ts`'s `toDetail`), and it's covered by the same retention policy and PII considerations as `input_text` — both are free-form text with no separate handling today.
 
-**Not stored:** raw provider HTTP responses (only the parsed-and-validated fields), any model chain-of-thought, and no payment data of any kind (there is no billing surface in this system).
+**Not stored:** any model chain-of-thought, and no payment data of any kind (there is no billing surface in this system).
 
 **Logs are metadata-only.** `analysis.service.ts`'s `logAnalysis()` emits exactly `{ userId, provider, model, promptVersion, tokensIn, tokensOut, durationMs, status }` — never the input text, never the summary, never raw model output. This isn't just a convention: `analysis.service.test.ts` asserts it directly, by feeding a marked "secret" input string through the real service and checking that string never appears in anything passed to `console.log`.
 
 **Retention.** There is no automatic TTL or purge job today — every analysis row persists indefinitely once created. The proposed policy is a 90-day retention window enforced by a scheduled purge job (e.g. an ECS scheduled task running a `DELETE ... WHERE created_at < now() - interval '90 days'`), documented here as future work rather than implemented, to keep this assessment's scope to what's actually running. Deleting a specific row today is a one-line `DELETE FROM analyses WHERE id = ...` in `psql` — there's no HTTP endpoint for it yet (see Trade-offs, below).
 
-**Auditability.** Any stored analysis — success or failure — is fully reconstructible: which prompt version built the request, which model and provider answered it, how many tokens it cost, and exactly when it happened.
+**Auditability.** Any stored analysis — success or failure — is fully reconstructible: which prompt version built the request, which model and provider answered it, how many tokens it cost, and exactly when it happened. Three columns complete a minimal per-row replayable trace: `raw_response` (the provider's exact text before normalization/validation — the malformed text itself on an invalid-JSON failure, `null` when nothing was ever returned, e.g. a `ProviderError`), `duration_ms` (wall time of the full `analyze()` pipeline, including any retry), and `attempts` (1 on the happy path, 2 when the shape-failure retry ran). Together they answer "what did the model actually say, how long did it take, and did we retry?" per row, straight from `psql`, with no log correlation needed.
+
+**Where this evolves next: a tracing platform, not more columns.** These three fields are deliberately minimal — enough to replay and debug a single row, not a general-purpose observability system. The natural next step if this pipeline grew (multiple LLM calls per row, chained prompts, span-level timing across a retry) is a dedicated LLM-tracing platform — Langfuse (self-hostable) or LangSmith — rather than more raw-text columns. Either would capture the rendered prompt, the raw completion, latencies, and retries as spans, linked to `analyses.id` as the trace ID, so the domain database keeps domain data and the tracing platform keeps full traces under its own retention policy.
 
 ## Evaluation & reliability
 
@@ -199,7 +201,7 @@ This is not just designed to work with real providers — it was verified agains
 
 **Regression detection.** Because `prompt_version` is persisted on every analysis row, a prompt or model change can be evaluated retroactively: run the eval before the change, run it again after, and diff the two tables. A drop in accuracy or hint recall on the same golden set is a signal to revert or iterate before shipping, not something discovered from a support ticket.
 
-**Handling a wrong answer in production.** The UI never presents a result as ground truth: every result carries the permanent "may contain errors" disclaimer and a confidence bucket with an explanatory tooltip. A user can hit "Report this result" on any analysis (`POST /analyses/:id/report`), which sets `reported_at` — an idempotent, append-only signal that a human should look at that row, forming the seed of a review queue. The full trace (input text, output, provider, model, prompt version, tokens) is available per row for that review. Using an LLM as a judge to automatically flag likely-wrong summaries at scale, rather than relying only on user reports, is future work we didn't build here.
+**Handling a wrong answer in production.** The UI never presents a result as ground truth: every result carries the permanent "may contain errors" disclaimer and a confidence bucket with an explanatory tooltip. A user can hit "Report this result" on any analysis (`POST /analyses/:id/report`), which sets `reported_at` — an idempotent, append-only signal that a human should look at that row, forming the seed of a review queue. The full trace (input text, output, provider, model, prompt version, tokens, and now the replayable trace fields — `raw_response`, `duration_ms`, `attempts`) is available per row for that review. Using an LLM as a judge to automatically flag likely-wrong summaries at scale, rather than relying only on user reports, is future work we didn't build here.
 
 ## AWS infrastructure
 
@@ -263,7 +265,7 @@ curl -X POST http://localhost:3000/analyze \
 ```json
 {
   "analysis": {
-    "id": "c350e07f-1aec-4833-81f8-54dfda507113",
+    "id": "fd3da8f2-e211-4247-b480-2216bb77e701",
     "status": "completed",
     "summary": "The local high school introduced a new mandatory art elective this semester.",
     "category": "education",
@@ -273,13 +275,17 @@ curl -X POST http://localhost:3000/analyze \
     "provider": "mock",
     "model": "mock-analyzer-v1",
     "promptVersion": "analysis.v1",
-    "tokensIn": 391,
-    "tokensOut": 116,
+    "tokensIn": 363,
+    "tokensOut": 60,
     "reportedAt": null,
-    "createdAt": "2026-07-15T15:48:05.675Z"
+    "createdAt": "2026-07-15T20:30:08.695Z",
+    "durationMs": 0,
+    "attempts": 1
   }
 }
 ```
+
+`durationMs` and `attempts` are the two replayable-trace fields exposed via the API (see Data, retention & PII, below); `rawResponse` is deliberately absent — it's operator/audit data, queried via `psql`, never returned to a client.
 
 Fetch it back and report it:
 
@@ -293,7 +299,7 @@ curl -X POST http://localhost:3000/analyses/c350e07f-1aec-4833-81f8-54dfda507113
 
 ## Testing
 
-Backend: `npm test` (from `backend/`), which runs `vitest run`. As of this writing, that's **116 tests across 16 files**, all passing, with no external services required (the analysis pipeline is tested against the real `MockProvider` and a mocked repository, not a live database).
+Backend: `npm test` (from `backend/`), which runs `vitest run`. As of this writing, that's **117 tests across 16 files**, all passing, with no external services required (the analysis pipeline is tested against the real `MockProvider` and a mocked repository, not a live database).
 
 Covered: auth (register/login/me, password strength, duplicate email, enumeration resistance, token expiry/garbage tokens), the full analysis pipeline including both failure paths (malformed output triggering a retry, then a `failed` row; a provider error triggering a `failed` row with no retry), normalization edge cases (out-of-range confidence, unrecognized categories, oversized/empty key-point arrays), rate limiting (429 on the 3rd request against an injected 2/min limit), ownership scoping (a foreign row returns 404, not the row), and the golden-set eval as a deterministic CI test.
 
