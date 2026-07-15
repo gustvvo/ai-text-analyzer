@@ -34,7 +34,7 @@ If port 5432 is already taken on your machine, export `POSTGRES_PORT` before ste
 
 The backend defaults to `AI_PROVIDER=mock`: a deterministic, network-free provider that produces byte-identical output for a given input, at zero cost and with no API key. This is what the commands above run against, and it's enough to exercise the full pipeline — auth, rate limits, validation, persistence, the history/report UI — without spending anything.
 
-To use a real model, set two environment variables on the backend (in `docker-compose.yml`, or in a `backend/.env` consumed by your process manager) and restart it:
+To use a real model, create a `.env` file at the repo root (gitignored; `docker-compose.yml` picks it up automatically and it is optional) with two variables, then restart the backend (`docker compose up -d backend`):
 
 ```bash
 AI_PROVIDER=anthropic

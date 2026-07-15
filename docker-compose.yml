@@ -21,6 +21,11 @@ services:
     build: ./backend
     ports:
       - "3000:3000"
+    # Optional local overrides (AI provider keys, AI_PROVIDER, models).
+    # Values in `environment:` below take precedence over the file.
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/ai_text_analyzer
       CORS_ORIGIN: http://localhost:5173
