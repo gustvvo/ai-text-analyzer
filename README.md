@@ -20,6 +20,8 @@ cd backend
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/ai_text_analyzer npm run migrate:up
 ```
 
+Seed a demo user (idempotent — safe to re-run) with `npm run seed`; it creates `demo@example.com` / `demo1234`.
+
 Run the frontend separately:
 
 ```bash

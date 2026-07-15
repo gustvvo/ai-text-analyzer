@@ -24,6 +24,7 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/ai_text_analyzer
       CORS_ORIGIN: http://localhost:5173
+      JWT_SECRET: dev-secret-change-me-please
     depends_on:
       postgres:
         condition: service_healthy

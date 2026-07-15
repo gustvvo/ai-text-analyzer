@@ -7,6 +7,8 @@ const configSchema = z.object({
     .url()
     .default("postgres://postgres:postgres@localhost:5432/ai_text_analyzer"),
   CORS_ORIGIN: z.string().url().default("http://localhost:5173"),
+  JWT_SECRET: z.string().min(16),
+  JWT_EXPIRES_IN: z.string().default("30m"),
 });
 
 export type Config = z.infer<typeof configSchema>;
