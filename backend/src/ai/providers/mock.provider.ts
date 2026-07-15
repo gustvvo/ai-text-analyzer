@@ -16,6 +16,7 @@ const SHORT_INPUT_WARNING = "Input is very short; classification is low-signal."
 
 const SUMMARY_FALLBACK = "The provided text was analyzed.";
 const SUMMARY_CHAR_FALLBACK_LENGTH = 240;
+const MAX_SUMMARY_LENGTH = 2000;
 const KEY_POINTS_FALLBACK: readonly string[] = ["No distinct key points identified."];
 const MAX_KEY_POINT_LENGTH = 300;
 
@@ -64,7 +65,7 @@ function splitSentences(content: string): string[] {
 
 function buildSummary(content: string, sentences: string[]): string {
   if (sentences.length > 0) {
-    const summary = sentences.slice(0, 2).join(" ").trim();
+    const summary = sentences.slice(0, 2).join(" ").slice(0, MAX_SUMMARY_LENGTH).trim();
     if (summary.length > 0) {
       return summary;
     }

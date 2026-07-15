@@ -120,4 +120,15 @@ describe("MockProvider", () => {
       expect(providerError.message).toBe("simulated provider failure");
     }
   });
+
+  it("caps summary at schema max length (2000 chars) for very long sentences", async () => {
+    const veryLongSentence = "word ".repeat(500) + "the end.";
+    const prompt = ANALYSIS_PROMPT_V1.build(veryLongSentence);
+    const result = await provider.invoke(prompt);
+
+    const parsed = JSON.parse(result.rawText);
+    const validated = analysisResponseSchema.parse(parsed);
+
+    expect(validated.summary.length).toBeLessThanOrEqual(2000);
+  });
 });
