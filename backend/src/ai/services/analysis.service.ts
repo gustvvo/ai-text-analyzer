@@ -71,6 +71,9 @@ interface FailParams {
   tokensOut: number | null;
   reason: string;
   startedAt: number;
+  attempts: number;
+  /** The last rawText seen, if any — null when no ProviderResult was ever returned (e.g. ProviderError). */
+  rawResponse: string | null;
 }
 
 /**
@@ -106,6 +109,8 @@ export class AnalysisService {
             tokensOut: null,
             reason: PROVIDER_ERROR_REASON,
             startedAt,
+            attempts: attempt,
+            rawResponse: null,
           });
         }
         throw err;
@@ -121,6 +126,7 @@ export class AnalysisService {
         const isRetrySuccess = attempt > 1;
         const { value } = normalizeResponse(parsed, isRetrySuccess ? [RETRY_SUCCEEDED_WARNING] : []);
         const validated = analysisResponseSchema.parse(value);
+        const durationMs = Date.now() - startedAt;
 
         const record = await this.repository.createAnalysis({
           userId,
@@ -136,6 +142,9 @@ export class AnalysisService {
           tokensIn: result.tokensIn,
           tokensOut: result.tokensOut,
           status: "completed",
+          durationMs,
+          attempts: attempt,
+          rawResponse: result.rawText,
         });
 
         logAnalysis({
@@ -145,7 +154,7 @@ export class AnalysisService {
           promptVersion: prompt.version,
           tokensIn: result.tokensIn,
           tokensOut: result.tokensOut,
-          durationMs: Date.now() - startedAt,
+          durationMs,
           status: "completed",
         });
 
@@ -161,6 +170,8 @@ export class AnalysisService {
             tokensOut: result.tokensOut,
             reason: INVALID_OUTPUT_REASON,
             startedAt,
+            attempts: attempt,
+            rawResponse: result.rawText,
           });
         }
         // Malformed model output on the first attempt — retry once from
@@ -173,6 +184,8 @@ export class AnalysisService {
   }
 
   private async fail(params: FailParams): Promise<never> {
+    const durationMs = Date.now() - params.startedAt;
+
     await this.repository.createAnalysis({
       userId: params.userId,
       inputText: params.text,
@@ -183,6 +196,9 @@ export class AnalysisService {
       tokensOut: params.tokensOut,
       status: "failed",
       errorMessage: params.reason,
+      durationMs,
+      attempts: params.attempts,
+      rawResponse: params.rawResponse,
     });
 
     logAnalysis({
@@ -192,7 +208,7 @@ export class AnalysisService {
       promptVersion: params.promptVersion,
       tokensIn: params.tokensIn,
       tokensOut: params.tokensOut,
-      durationMs: Date.now() - params.startedAt,
+      durationMs,
       status: "failed",
     });
 

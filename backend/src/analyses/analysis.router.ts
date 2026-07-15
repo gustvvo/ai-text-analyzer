@@ -26,7 +26,14 @@ export interface AnalysisRouterOptions {
   analyzeRateLimitPerMin?: number;
 }
 
-/** Full detail, including input_text — used by POST /analyze and GET /analyses/:id. */
+/**
+ * Full detail, including input_text — used by POST /analyze and GET /analyses/:id.
+ *
+ * `durationMs`/`attempts` are safe, aggregate trace fields and are exposed
+ * here. `rawResponse` is deliberately NOT included: it's operator/audit data
+ * queried via SQL, and returning pre-validation model output to clients
+ * would bypass the validation gate semantics zod exists to enforce.
+ */
 function toDetail(record: AnalysisRecord) {
   return {
     id: record.id,
@@ -44,6 +51,8 @@ function toDetail(record: AnalysisRecord) {
     tokensOut: record.tokensOut,
     reportedAt: record.reportedAt,
     createdAt: record.createdAt,
+    durationMs: record.durationMs,
+    attempts: record.attempts,
   };
 }
 

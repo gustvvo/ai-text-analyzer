@@ -42,6 +42,9 @@ function fakeRecord(data: CreateAnalysisInput): AnalysisRecord {
     tokensOut: data.tokensOut,
     reportedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    durationMs: data.durationMs,
+    attempts: data.attempts,
+    rawResponse: data.rawResponse,
   };
 
   if (data.status === "completed") {

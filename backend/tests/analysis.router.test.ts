@@ -59,6 +59,9 @@ function fakeAnalysisRecord(overrides: Partial<AnalysisRecord> = {}): AnalysisRe
     errorMessage: null,
     reportedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    durationMs: 42,
+    attempts: 1,
+    rawResponse: '{"summary":"a summary"}',
     ...overrides,
   };
 }
@@ -237,6 +240,23 @@ describe("GET /analyses/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: "Not found" });
     expect(mockFindAnalysisByIdForUser).toHaveBeenCalledWith(ANALYSIS_ID, OTHER_USER_ID);
+  });
+
+  it("includes durationMs/attempts but NEVER rawResponse (operator/audit data, not client-facing)", async () => {
+    const app = createApp();
+    const token = signToken();
+    mockFindAnalysisByIdForUser.mockResolvedValue(
+      fakeAnalysisRecord({ durationMs: 123, attempts: 2, rawResponse: "raw model output {{" }),
+    );
+
+    const response = await request(app)
+      .get(`/analyses/${ANALYSIS_ID}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.analysis.durationMs).toBe(123);
+    expect(response.body.analysis.attempts).toBe(2);
+    expect(Object.keys(response.body.analysis)).not.toContain("rawResponse");
   });
 
   it("returns 404 for a malformed id instead of a DB error", async () => {

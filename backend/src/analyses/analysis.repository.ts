@@ -24,6 +24,21 @@ export interface AnalysisRecord {
   errorMessage: string | null;
   reportedAt: Date | null;
   createdAt: Date;
+  /**
+   * Wall time of the full analyze() pipeline (including any retry), in
+   * milliseconds. Operator/debug data — surfaced via the API's detail
+   * response, but not through toListItem.
+   */
+  durationMs: number | null;
+  /** Provider invocations used to produce this row: 1 on the happy path, 2 when the shape-failure retry ran. */
+  attempts: number | null;
+  /**
+   * The provider's rawText exactly as returned, before normalization/
+   * validation. Operator/audit data ONLY: never exposed through the API (see
+   * analysis.router.ts's toDetail) since returning pre-validation model
+   * output to clients would bypass the validation gate semantics.
+   */
+  rawResponse: string | null;
 }
 
 interface AnalysisRow {
@@ -44,6 +59,9 @@ interface AnalysisRow {
   error_message: string | null;
   reported_at: Date | null;
   created_at: Date;
+  duration_ms: number | null;
+  attempts: number | null;
+  raw_response: string | null;
 }
 
 function toRecord(row: AnalysisRow): AnalysisRecord {
@@ -65,6 +83,9 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
     errorMessage: row.error_message,
     reportedAt: row.reported_at,
     createdAt: row.created_at,
+    durationMs: row.duration_ms,
+    attempts: row.attempts,
+    rawResponse: row.raw_response,
   };
 }
 
@@ -82,6 +103,10 @@ export interface CreateCompletedAnalysisInput {
   tokensIn: number | null;
   tokensOut: number | null;
   status: "completed";
+  durationMs: number;
+  attempts: number;
+  /** The successful attempt's rawText, before normalization/validation. */
+  rawResponse: string;
 }
 
 export interface CreateFailedAnalysisInput {
@@ -95,6 +120,14 @@ export interface CreateFailedAnalysisInput {
   status: "failed";
   /** Short, generic reason (e.g. "invalid model output") — never a stack trace or raw output. */
   errorMessage: string;
+  durationMs: number;
+  attempts: number;
+  /**
+   * The last rawText seen, if any: the malformed text on an invalid-JSON
+   * failure (the valuable debug artifact), or null when a ProviderError
+   * means nothing was ever returned.
+   */
+  rawResponse: string | null;
 }
 
 export type CreateAnalysisInput = CreateCompletedAnalysisInput | CreateFailedAnalysisInput;
@@ -105,8 +138,9 @@ export async function createAnalysis(data: CreateAnalysisInput): Promise<Analysi
   const result = await pool.query<AnalysisRow>(
     `INSERT INTO analyses
       (user_id, input_text, summary, category, confidence, key_points, warnings,
-       provider, model, prompt_version, tokens_in, tokens_out, status, error_message)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       provider, model, prompt_version, tokens_in, tokens_out, status, error_message,
+       duration_ms, attempts, raw_response)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      RETURNING *`,
     [
       data.userId,
@@ -123,6 +157,9 @@ export async function createAnalysis(data: CreateAnalysisInput): Promise<Analysi
       data.tokensOut,
       data.status,
       isCompleted ? null : data.errorMessage,
+      data.durationMs,
+      data.attempts,
+      data.rawResponse,
     ],
   );
 

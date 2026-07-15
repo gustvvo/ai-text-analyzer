@@ -32,6 +32,9 @@ function fakeRecord(data: CreateAnalysisInput): AnalysisRecord {
     tokensOut: data.tokensOut,
     reportedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    durationMs: data.durationMs,
+    attempts: data.attempts,
+    rawResponse: data.rawResponse,
   };
 
   if (data.status === "completed") {
@@ -78,8 +81,10 @@ function providerResult(rawBody: unknown, overrides: Partial<ProviderResult> = {
 
 describe("AnalysisService — happy path with the real MockProvider", () => {
   it("returns a value that passes analysisResponseSchema and persists a completed row", async () => {
+    const provider = new MockProvider();
+    const invokeSpy = vi.spyOn(provider, "invoke");
     const repository = makeRepository();
-    const service = new AnalysisService(new MockProvider(), repository, config);
+    const service = new AnalysisService(provider, repository, config);
 
     const record = await service.analyze(USER_ID, LONG_TECH_TEXT);
 
@@ -109,6 +114,16 @@ describe("AnalysisService — happy path with the real MockProvider", () => {
     expect(record.provider).toBe("mock");
     expect(record.promptVersion).toBe(DEFAULT_PROMPT_VERSION);
     expect(record.status).toBe("completed");
+
+    // Replayable trace fields: one provider invocation, and the raw text
+    // handed to the repository is exactly what MockProvider returned.
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
+    const providerResultReturned = await invokeSpy.mock.results[0]?.value;
+    if (insertedData.status === "completed") {
+      expect(insertedData.attempts).toBe(1);
+      expect(insertedData.durationMs).toBeGreaterThanOrEqual(0);
+      expect(insertedData.rawResponse).toBe(providerResultReturned.rawText);
+    }
   });
 });
 
@@ -132,6 +147,9 @@ describe("AnalysisService — retry policy", () => {
     expect(insertedData.status).toBe("failed");
     if (insertedData.status === "failed") {
       expect(insertedData.errorMessage).toBe("invalid model output");
+      expect(insertedData.attempts).toBe(2);
+      // The malformed rawText is the valuable debug artifact — kept, not discarded.
+      expect(insertedData.rawResponse).toContain("not valid json");
     }
   });
 
@@ -154,22 +172,24 @@ describe("AnalysisService — retry policy", () => {
     expect(insertedData.status).toBe("failed");
     if (insertedData.status === "failed") {
       expect(insertedData.errorMessage).toBe("provider error");
+      expect(insertedData.attempts).toBe(1);
+      // Nothing was ever returned by the provider — there is no raw text to keep.
+      expect(insertedData.rawResponse).toBeNull();
     }
   });
 
   it("adds a system warning when a retry succeeds", async () => {
     const provider: AIProvider = { name: "fake", invoke: vi.fn() };
+    const secondRawText = JSON.stringify({
+      summary: "A retried summary.",
+      category: "technology",
+      confidence: 0.9,
+      keyPoints: ["Point one."],
+      warnings: [],
+    });
     vi.mocked(provider.invoke)
       .mockResolvedValueOnce(providerResult("not valid json {{"))
-      .mockResolvedValueOnce(
-        providerResult({
-          summary: "A retried summary.",
-          category: "technology",
-          confidence: 0.9,
-          keyPoints: ["Point one."],
-          warnings: [],
-        }),
-      );
+      .mockResolvedValueOnce(providerResult(JSON.parse(secondRawText)));
     const repository = makeRepository();
     const service = new AnalysisService(provider, repository, config);
 
@@ -178,6 +198,14 @@ describe("AnalysisService — retry policy", () => {
     expect(provider.invoke).toHaveBeenCalledTimes(2);
     expect(record.status).toBe("completed");
     expect(record.warnings).toContain("Result was obtained after a retry.");
+
+    const insertedData = repository.createAnalysis.mock.calls[0]?.[0];
+    if (!insertedData) {
+      throw new Error("expected createAnalysis to have been called");
+    }
+    expect(insertedData.attempts).toBe(2);
+    // rawResponse must be the SECOND (valid) rawText, not the first malformed one.
+    expect(insertedData.rawResponse).toBe(secondRawText);
   });
 });
 
