@@ -112,7 +112,7 @@ describe("POST /analyze", () => {
     expect(insertedData?.userId).toBe(USER_ID);
   });
 
-  it("returns 502 with the exact generic body when the AI pipeline fails after exhausting retries", async () => {
+  it("returns 502 with the exact generic body on a provider error ([[SIMULATE_PROVIDER_ERROR]], no service-level retry)", async () => {
     const app = createApp();
     const token = signToken();
     mockCreateAnalysis.mockResolvedValue(fakeAnalysisRecord({ status: "failed" }));

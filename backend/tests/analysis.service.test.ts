@@ -180,6 +180,90 @@ describe("AnalysisService — retry policy", () => {
   });
 });
 
+describe("AnalysisService — warnings cap keeps system warnings (regression for F1/F2)", () => {
+  const TEN_MODEL_WARNINGS = Array.from({ length: 10 }, (_, i) => `Model warning ${i + 1}.`);
+
+  it("keeps the category-normalization system warning when the model already returned 10 warnings", async () => {
+    const provider: AIProvider = { name: "fake", invoke: vi.fn() };
+    vi.mocked(provider.invoke).mockResolvedValue(
+      providerResult({
+        summary: "A summary.",
+        category: "finanzas",
+        confidence: 0.9,
+        keyPoints: ["Point one."],
+        warnings: TEN_MODEL_WARNINGS,
+      }),
+    );
+    const repository = makeRepository();
+    const service = new AnalysisService(provider, repository, config);
+
+    const record = await service.analyze(USER_ID, "irrelevant");
+
+    expect(record.warnings.length).toBeLessThanOrEqual(10);
+    expect(record.warnings).toContain("Category was normalized from an unrecognized value.");
+    expect(
+      analysisResponseSchema.parse({
+        summary: record.summary,
+        category: record.category,
+        confidence: record.confidence,
+        keyPoints: record.keyPoints,
+        warnings: record.warnings,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("keeps 'Result was obtained after a retry.' when the successful retry attempt already returns 10 warnings", async () => {
+    const provider: AIProvider = { name: "fake", invoke: vi.fn() };
+    vi.mocked(provider.invoke)
+      .mockResolvedValueOnce(providerResult("not valid json {{"))
+      .mockResolvedValueOnce(
+        providerResult({
+          summary: "A retried summary.",
+          category: "technology",
+          confidence: 0.9,
+          keyPoints: ["Point one."],
+          warnings: TEN_MODEL_WARNINGS,
+        }),
+      );
+    const repository = makeRepository();
+    const service = new AnalysisService(provider, repository, config);
+
+    const record = await service.analyze(USER_ID, "irrelevant");
+
+    expect(provider.invoke).toHaveBeenCalledTimes(2);
+    expect(record.warnings.length).toBeLessThanOrEqual(10);
+    expect(record.warnings).toContain("Result was obtained after a retry.");
+  });
+
+  it("returns a payload with no post-parse mutation: the returned subset deep-equals its own analysisResponseSchema.parse", async () => {
+    const provider: AIProvider = { name: "fake", invoke: vi.fn() };
+    vi.mocked(provider.invoke)
+      .mockResolvedValueOnce(providerResult("not valid json {{"))
+      .mockResolvedValueOnce(
+        providerResult({
+          summary: "A retried summary.",
+          category: "finanzas",
+          confidence: 0.9,
+          keyPoints: ["Point one."],
+          warnings: TEN_MODEL_WARNINGS,
+        }),
+      );
+    const repository = makeRepository();
+    const service = new AnalysisService(provider, repository, config);
+
+    const record = await service.analyze(USER_ID, "irrelevant");
+
+    const returnedSubset = {
+      summary: record.summary,
+      category: record.category,
+      confidence: record.confidence,
+      keyPoints: record.keyPoints,
+      warnings: record.warnings,
+    };
+    expect(analysisResponseSchema.parse(returnedSubset)).toEqual(returnedSubset);
+  });
+});
+
 describe("AnalysisService — normalization (fake provider returning crafted rawText)", () => {
   it("lowercases/trims a recognized category", async () => {
     const provider: AIProvider = { name: "fake", invoke: vi.fn() };

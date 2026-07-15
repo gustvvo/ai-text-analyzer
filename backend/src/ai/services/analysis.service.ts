@@ -7,7 +7,6 @@ import { analysisResponseSchema } from "../schemas/analysis-response.schema.js";
 import { normalizeResponse } from "./normalize.js";
 
 const MAX_ATTEMPTS = 2;
-const MAX_WARNINGS = 10;
 
 const INVALID_OUTPUT_REASON = "invalid model output";
 const PROVIDER_ERROR_REASON = "provider error";
@@ -114,13 +113,14 @@ export class AnalysisService {
 
       try {
         const parsed: unknown = JSON.parse(result.rawText);
-        const { value } = normalizeResponse(parsed);
-        const validated = analysisResponseSchema.parse(value);
-
+        // All warning assembly (model warnings + normalization system
+        // warnings + this retry notice) must happen BEFORE the final parse
+        // below, so the schema validates the object in the exact shape that
+        // gets persisted/returned — zod stays the one and only final gate,
+        // with no mutation of its output afterwards.
         const isRetrySuccess = attempt > 1;
-        const warnings = isRetrySuccess
-          ? [...validated.warnings, RETRY_SUCCEEDED_WARNING].slice(0, MAX_WARNINGS)
-          : validated.warnings;
+        const { value } = normalizeResponse(parsed, isRetrySuccess ? [RETRY_SUCCEEDED_WARNING] : []);
+        const validated = analysisResponseSchema.parse(value);
 
         const record = await this.repository.createAnalysis({
           userId,
@@ -129,7 +129,7 @@ export class AnalysisService {
           category: validated.category,
           confidence: validated.confidence,
           keyPoints: validated.keyPoints,
-          warnings,
+          warnings: validated.warnings,
           provider: this.provider.name,
           model: result.model,
           promptVersion: prompt.version,

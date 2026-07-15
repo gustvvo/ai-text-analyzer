@@ -38,9 +38,14 @@ function trimNonEmptyStrings(items: unknown): string[] {
  * Fields with a fundamentally wrong type (e.g. `confidence` as a string) are
  * left untouched here and rejected by zod downstream, since there is no safe
  * way to normalize a wrong type into a valid value.
+ *
+ * `extraSystemWarnings` lets a caller (e.g. the service's "retry succeeded"
+ * notice) fold its own system warning into this same pre-validation
+ * assembly, so it is capped and validated together with the warnings this
+ * function generates itself (e.g. category normalization), in one pass.
  */
-export function normalizeResponse(raw: unknown): NormalizeResult {
-  const systemWarnings: string[] = [];
+export function normalizeResponse(raw: unknown, extraSystemWarnings: string[] = []): NormalizeResult {
+  const systemWarnings: string[] = [...extraSystemWarnings];
 
   if (!isRecord(raw)) {
     return { value: raw, systemWarnings };
@@ -70,10 +75,16 @@ export function normalizeResponse(raw: unknown): NormalizeResult {
     .map((point) => point.slice(0, MAX_KEY_POINT_LENGTH))
     .slice(0, MAX_KEY_POINTS);
 
-  // Leave room for system warnings before capping at MAX_WARNINGS, so a
-  // model that already maxed out its own warnings doesn't crowd out ours.
+  // System warnings MUST survive the MAX_WARNINGS cap: they carry
+  // information about what WE changed (e.g. category normalization, a
+  // retry), so a model that already maxed out its own warnings gives way
+  // instead of crowding them out. Cap systemWarnings itself as a last-resort
+  // guard so the slice below never receives a negative "end" index.
   const userWarnings = trimNonEmptyStrings(raw.warnings);
-  normalized.warnings = [...userWarnings, ...systemWarnings].slice(0, MAX_WARNINGS);
+  const cappedSystemWarnings = systemWarnings.slice(0, MAX_WARNINGS);
+  normalized.warnings = userWarnings
+    .slice(0, MAX_WARNINGS - cappedSystemWarnings.length)
+    .concat(cappedSystemWarnings);
 
   return { value: normalized, systemWarnings };
 }
