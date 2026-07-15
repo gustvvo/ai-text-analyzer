@@ -32,6 +32,7 @@ export function HistoryPage() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,13 +58,14 @@ export function HistoryPage() {
 
   async function loadMore() {
     setLoadingMore(true);
+    setLoadMoreError(null);
     try {
       const res = await listAnalyses(PAGE_SIZE, offset);
       setItems((prev) => [...prev, ...res.analyses]);
       setOffset((prev) => prev + res.analyses.length);
       setHasMore(res.analyses.length === PAGE_SIZE);
     } catch (err) {
-      setState({ kind: "error", message: err instanceof ApiError ? err.message : "Something went wrong." });
+      setLoadMoreError(err instanceof ApiError ? err.message : "Something went wrong.");
     } finally {
       setLoadingMore(false);
     }
@@ -129,9 +131,12 @@ export function HistoryPage() {
       </div>
 
       {hasMore && (
-        <button type="button" className="load-more-btn" onClick={() => void loadMore()} disabled={loadingMore}>
-          {loadingMore ? "Loading…" : "Load more"}
-        </button>
+        <div>
+          <button type="button" className="load-more-btn" onClick={() => void loadMore()} disabled={loadingMore}>
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+          {loadMoreError && <ErrorBanner message={loadMoreError} />}
+        </div>
       )}
     </div>
   );

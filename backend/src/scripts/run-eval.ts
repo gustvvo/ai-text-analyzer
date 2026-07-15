@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { getPrompt, DEFAULT_PROMPT_VERSION } from "../src/ai/prompts/prompt-registry.js";
-import { createProvider } from "../src/ai/providers/provider.factory.js";
-import { ProviderError, type AIProvider } from "../src/ai/providers/ai-provider.interface.js";
-import { analysisResponseSchema } from "../src/ai/schemas/analysis-response.schema.js";
-import { normalizeResponse } from "../src/ai/services/normalize.js";
-import { loadConfig } from "../src/config.js";
+import { getPrompt, DEFAULT_PROMPT_VERSION } from "../ai/prompts/prompt-registry.js";
+import { createProvider } from "../ai/providers/provider.factory.js";
+import { ProviderError, type AIProvider } from "../ai/providers/ai-provider.interface.js";
+import { analysisResponseSchema } from "../ai/schemas/analysis-response.schema.js";
+import { normalizeResponse } from "../ai/services/normalize.js";
+import { loadConfig } from "../config.js";
 
 /**
  * Standalone golden-set runner for any configured AI_PROVIDER (mock by
@@ -40,7 +40,7 @@ interface CaseResult {
 }
 
 function loadGoldenSet(): GoldenCase[] {
-  const filePath = fileURLToPath(new URL("../eval/golden-set.json", import.meta.url));
+  const filePath = fileURLToPath(new URL("../../eval/golden-set.json", import.meta.url));
   const raw = readFileSync(filePath, "utf-8");
   return JSON.parse(raw) as GoldenCase[];
 }
