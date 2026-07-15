@@ -64,6 +64,10 @@ resource "aws_db_instance" "main" {
   # Trade-off: assessment-only setting so `terraform destroy` doesn't hang
   # waiting on a final snapshot. A production deployment would set this to
   # false and let Terraform take a final snapshot on destroy.
+  # Encryption at rest with the AWS-managed KMS key: free, no operational
+  # cost, and input_text can contain user PII.
+  storage_encrypted = true
+
   skip_final_snapshot = true
 
   tags = {
