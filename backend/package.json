@@ -14,7 +14,8 @@
     "migrate": "node-pg-migrate -j ts -d DATABASE_URL",
     "migrate:up": "npm run migrate -- up",
     "migrate:down": "npm run migrate -- down",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "eval": "tsx scripts/run-eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

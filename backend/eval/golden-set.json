@@ -1,0 +1,62 @@
+[
+  {
+    "id": "gs-01",
+    "text": "Artificial intelligence is transforming how software engineers build modern products. New machine learning models allow computers to understand natural language with remarkable accuracy. Engineers are embedding this technology into everyday internet applications, from search tools to virtual assistants.",
+    "expectedCategory": "technology",
+    "expectedKeyPointHints": ["software", "computers"]
+  },
+  {
+    "id": "gs-02",
+    "text": "The retail company posted strong revenue growth for the third consecutive quarter. Analysts said rising consumer demand pushed the business into new regional markets. Investors welcomed the startup's expansion plans and its founder's confidence for next year.",
+    "expectedCategory": "business",
+    "expectedKeyPointHints": ["revenue", "company"]
+  },
+  {
+    "id": "gs-03",
+    "text": "A team of researchers published new findings about deep-sea ecosystems this week. The scientists conducted a year-long experiment to measure how coral reacts to warmer water. Their study suggests reef biology is more resilient than previously believed.",
+    "expectedCategory": "science",
+    "expectedKeyPointHints": ["experiment", "study"]
+  },
+  {
+    "id": "gs-04",
+    "text": "Doctors at the regional clinic are warning about a rise in seasonal flu cases this winter. The illness spreads quickly indoors and can be serious for older patients. Health officials recommend vaccination and frequent handwashing to reduce the spread of disease.",
+    "expectedCategory": "health",
+    "expectedKeyPointHints": ["patients", "vaccination"]
+  },
+  {
+    "id": "gs-05",
+    "text": "Lawmakers in the capital are debating a new energy policy ahead of the autumn election. The president urged both chambers of congress to reach a compromise before the vote. Local government leaders said the outcome would shape budgets for years to come.",
+    "expectedCategory": "politics",
+    "expectedKeyPointHints": ["election", "congress"]
+  },
+  {
+    "id": "gs-06",
+    "text": "The home team came from behind to win a thrilling match in the final minutes of the game. Fans packed the stadium to watch their star player lead the league table push. The victory keeps the club in contention for the championship this season.",
+    "expectedCategory": "sports",
+    "expectedKeyPointHints": ["stadium", "championship"]
+  },
+  {
+    "id": "gs-07",
+    "text": "The new film premiered to a packed theater and glowing reviews from critics. Audiences praised the movie's soundtrack, calling it some of the best music of the year. The celebrity cast is expected to reunite for a limited series later this year.",
+    "expectedCategory": "entertainment",
+    "expectedKeyPointHints": ["celebrity", "soundtrack"]
+  },
+  {
+    "id": "gs-08",
+    "text": "The local high school introduced a new mandatory art elective this semester for younger students. Teachers say the course helps students build confidence completing projects step by step. The university has agreed to grant college credit to students who complete it successfully.",
+    "expectedCategory": "education",
+    "expectedKeyPointHints": ["teachers", "elective"]
+  },
+  {
+    "id": "gs-09",
+    "text": "Rain tapped gently on the window while a pot of soup simmered on the stove. The kitchen smelled of rosemary and warm bread cooling on the counter. Outside, the garden path glistened under the porch light as evening settled in.",
+    "expectedCategory": "other",
+    "expectedKeyPointHints": ["soup", "garden"]
+  },
+  {
+    "id": "gs-10",
+    "text": "Traffic was heavy again this morning.",
+    "expectedCategory": "other",
+    "expectedKeyPointHints": ["traffic", "morning"]
+  }
+]
