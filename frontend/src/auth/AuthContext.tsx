@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { login as apiLogin, me as apiMe, register as apiRegister, setAuthToken, setUnauthorizedHandler } from "../api/client";
+import { ApiError, login as apiLogin, me as apiMe, register as apiRegister, setAuthToken, setUnauthorizedHandler } from "../api/client";
 import type { AuthUser } from "../api/types";
 
 // Token lives in localStorage for simplicity, which means it's readable by
@@ -55,8 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(res.user);
         setStatus("authenticated");
       })
-      .catch(() => {
-        clearSession();
+      .catch((err) => {
+        // Only clear session on definitive auth rejection (401).
+        // For transient errors, preserve token and remain authenticated.
+        if (err instanceof ApiError && err.status === 401) {
+          clearSession();
+        } else {
+          setStatus("authenticated");
+        }
       });
   }, [clearSession]);
 

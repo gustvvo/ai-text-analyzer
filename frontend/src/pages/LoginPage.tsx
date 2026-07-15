@@ -14,6 +14,14 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  if (status === "loading") {
+    return (
+      <main className="app-shell auth-shell">
+        <p>Loading…</p>
+      </main>
+    );
+  }
+
   if (status === "authenticated") {
     return <Navigate to="/analyze" replace />;
   }
@@ -51,6 +59,7 @@ export function LoginPage() {
           aria-selected={mode === "sign-in"}
           className={mode === "sign-in" ? "toggle-btn toggle-btn--active" : "toggle-btn"}
           onClick={() => switchMode("sign-in")}
+          disabled={submitting}
         >
           Sign in
         </button>
@@ -60,6 +69,7 @@ export function LoginPage() {
           aria-selected={mode === "create-account"}
           className={mode === "create-account" ? "toggle-btn toggle-btn--active" : "toggle-btn"}
           onClick={() => switchMode("create-account")}
+          disabled={submitting}
         >
           Create account
         </button>
