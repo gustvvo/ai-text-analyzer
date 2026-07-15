@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
+import { createAnalysisRouter } from "./analyses/analysis.router.js";
 import { authRouter } from "./auth/auth.router.js";
 import { config } from "./config.js";
 import { checkDbConnection } from "./db.js";
@@ -20,6 +21,7 @@ export function createApp(): Express {
   });
 
   app.use("/auth", authRouter);
+  app.use(createAnalysisRouter());
 
   app.use((_req, res) => {
     res.status(404).json({ error: "Not found" });

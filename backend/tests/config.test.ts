@@ -71,4 +71,22 @@ describe("config — AI provider settings", () => {
     expect(config.AI_PROVIDER).toBe("openai");
     expect(config.OPENAI_API_KEY).toBe("dummy-openai-key");
   });
+
+  it("defaults RATE_LIMIT_ANALYZE_PER_MIN and RATE_LIMIT_AUTH_PER_MIN", () => {
+    const config = loadConfig(BASE_ENV);
+
+    expect(config.RATE_LIMIT_ANALYZE_PER_MIN).toBe(10);
+    expect(config.RATE_LIMIT_AUTH_PER_MIN).toBe(5);
+  });
+
+  it("accepts overrides for the rate limit envs", () => {
+    const config = loadConfig({
+      ...BASE_ENV,
+      RATE_LIMIT_ANALYZE_PER_MIN: "20",
+      RATE_LIMIT_AUTH_PER_MIN: "3",
+    });
+
+    expect(config.RATE_LIMIT_ANALYZE_PER_MIN).toBe(20);
+    expect(config.RATE_LIMIT_AUTH_PER_MIN).toBe(3);
+  });
 });

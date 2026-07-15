@@ -18,6 +18,8 @@ const configSchema = z
     AI_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
     AI_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
     AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(2048),
+    RATE_LIMIT_ANALYZE_PER_MIN: z.coerce.number().int().positive().default(10),
+    RATE_LIMIT_AUTH_PER_MIN: z.coerce.number().int().positive().default(5),
   })
   .superRefine((data, ctx) => {
     if (data.AI_PROVIDER === "anthropic" && !data.ANTHROPIC_API_KEY) {
