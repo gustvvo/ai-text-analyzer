@@ -1,3 +1,4 @@
+import "./eval-env.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { getPrompt, DEFAULT_PROMPT_VERSION } from "../ai/prompts/prompt-registry.js";

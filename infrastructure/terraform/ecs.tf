@@ -75,7 +75,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "PORT", value = tostring(var.backend_port) },
         { name = "CORS_ORIGIN", value = var.cors_origin },
         { name = "AI_PROVIDER", value = "anthropic" },
-        { name = "ANTHROPIC_MODEL", value = "claude-sonnet-4-5" },
+        { name = "ANTHROPIC_MODEL", value = "claude-opus-4-8" },
         { name = "OPENAI_MODEL", value = "gpt-4o-mini" },
         { name = "AI_TIMEOUT_MS", value = "30000" },
         { name = "AI_MAX_RETRIES", value = "2" },

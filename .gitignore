@@ -7,7 +7,6 @@ coverage/
 .env
 .env.*
 !.env.example
-.superpowers/
 .terraform/
 *.tfstate
 *.tfstate.*
