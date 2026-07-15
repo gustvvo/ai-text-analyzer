@@ -91,11 +91,13 @@ export class AnalysisService {
   async analyze(userId: string, text: string): Promise<AnalysisRecord> {
     const prompt = getPrompt(DEFAULT_PROMPT_VERSION).build(text);
     const startedAt = Date.now();
+    let lastRawText: string | null = null;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       let result: ProviderResult;
       try {
         result = await this.provider.invoke(prompt);
+        lastRawText = result.rawText;
       } catch (err) {
         if (err instanceof ProviderError) {
           // The SDK already retried transport-level errors internally —
@@ -110,7 +112,7 @@ export class AnalysisService {
             reason: PROVIDER_ERROR_REASON,
             startedAt,
             attempts: attempt,
-            rawResponse: null,
+            rawResponse: lastRawText,
           });
         }
         throw err;

@@ -207,6 +207,39 @@ describe("AnalysisService — retry policy", () => {
     // rawResponse must be the SECOND (valid) rawText, not the first malformed one.
     expect(insertedData.rawResponse).toBe(secondRawText);
   });
+
+  it("preserves attempt 1's malformed rawText even when attempt 2 throws a ProviderError", async () => {
+    const provider: AIProvider = { name: "fake", invoke: vi.fn() };
+    const malformedRawText = "not valid json {{";
+    vi.mocked(provider.invoke)
+      .mockResolvedValueOnce({
+        rawText: malformedRawText,
+        model: "fake-model-v1",
+        tokensIn: 10,
+        tokensOut: 20,
+      })
+      .mockRejectedValueOnce(new ProviderError("provider failure"));
+    const repository = makeRepository();
+    const service = new AnalysisService(provider, repository, config);
+
+    await expect(
+      service.analyze(USER_ID, "irrelevant"),
+    ).rejects.toBeInstanceOf(AnalysisFailedError);
+
+    expect(provider.invoke).toHaveBeenCalledTimes(2);
+    expect(repository.createAnalysis).toHaveBeenCalledTimes(1);
+    const insertedData = repository.createAnalysis.mock.calls[0]?.[0];
+    if (!insertedData) {
+      throw new Error("expected createAnalysis to have been called");
+    }
+    expect(insertedData.status).toBe("failed");
+    if (insertedData.status === "failed") {
+      expect(insertedData.errorMessage).toBe("provider error");
+      expect(insertedData.attempts).toBe(2);
+      // The malformed text from attempt 1 is preserved, not discarded.
+      expect(insertedData.rawResponse).toBe(malformedRawText);
+    }
+  });
 });
 
 describe("AnalysisService — warnings cap keeps system warnings (regression for F1/F2)", () => {
