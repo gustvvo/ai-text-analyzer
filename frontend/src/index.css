@@ -1,10 +1,23 @@
 :root {
   font: 16px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
+
+  --color-bg-page: #f9fafb;
+  --color-bg-surface: #ffffff;
+  --color-border: #d0d5dd;
+  --color-border-subtle: #eaecf0;
+  --color-text-primary: #101828;
+  --color-text-secondary: #475467;
+  --color-text-tertiary: #667085;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-active: #1e40af;
 }
 
 body {
   margin: 0;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
 }
 
 *,
