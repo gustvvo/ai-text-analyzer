@@ -312,7 +312,7 @@ The assessment brief is explicit that clarity and reasoning about trade-offs mat
 
 ## Environment variables
 
-The backend's variables are documented in `.env.example` at the repo root (consumed by `docker-compose.yml` for local dev); the frontend's is `frontend/.env.example`. `backend/src/config.ts` defines a few additional tunables — `JWT_EXPIRES_IN`, `AI_TIMEOUT_MS`, `AI_MAX_RETRIES`, `AI_MAX_OUTPUT_TOKENS` — that aren't listed in `.env.example` because their defaults are fine for local dev; they're included below for completeness.
+The backend's variables are documented in `.env.example` at the repo root — a reference for values you export in your shell or set in `docker-compose.yml` (which defines its own dev-only values directly); the frontend's is `frontend/.env.example`. `backend/src/config.ts` defines a few additional tunables — `JWT_EXPIRES_IN`, `AI_TIMEOUT_MS`, `AI_MAX_RETRIES`, `AI_MAX_OUTPUT_TOKENS` — that aren't listed in `.env.example` because their defaults are fine for local dev; they're included below for completeness.
 
 | Variable | Default | Required when |
 |---|---|---|
