@@ -1,0 +1,30 @@
+# Copy to terraform.tfvars and adjust for your environment.
+# terraform.tfvars itself is gitignored; only *.tfvars.example is tracked.
+
+project_name = "ai-text-analyzer"
+aws_region   = "us-east-1"
+
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# Replace with the real ECR repository URI once an image has been pushed.
+backend_image = "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ai-text-analyzer-backend:latest"
+
+backend_port          = 3000
+backend_cpu           = 256
+backend_memory        = 512
+backend_desired_count = 1
+backend_max_count     = 4
+
+db_instance_class = "db.t4g.micro"
+
+# Set to the deployed CloudFront domain (see the cloudfront_domain_name
+# output) once known; the default is a placeholder for local/dev use only.
+cors_origin = "https://example.com"
+
+# Dummy AWS credentials — ONLY needed to run `terraform plan`/`validate` on
+# a machine with no AWS account configured. Leave as "test" for that
+# purpose; never put real keys here — a real deployment should rely on the
+# standard AWS credential chain (environment variables, SSO profile,
+# instance role, etc.) instead of these variables.
+aws_access_key_dummy = "test"
+aws_secret_key_dummy = "test"
