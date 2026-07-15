@@ -1,6 +1,307 @@
 .app {
-  max-width: 640px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
-  text-align: center;
+  padding: 2rem 1.5rem 4rem;
+  flex: 1;
+}
+
+/* Top bar */
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #d0d5dd;
+}
+
+.top-bar__brand {
+  font-weight: 700;
+}
+
+.top-bar__email {
+  margin-left: auto;
+  color: #475467;
+  font-size: 0.9rem;
+}
+
+.top-bar__logout {
+  background: none;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+/* Auth page */
+
+.auth-shell {
+  max-width: 420px;
+}
+
+.auth-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.toggle-btn--active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.hint {
+  font-size: 0.9rem;
+  color: #475467;
+  background: #f2f4f7;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+}
+
+.field-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #475467;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+
+.auth-form label {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+/* Shared form controls */
+
+input,
+textarea {
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #98a2b3;
+  border-radius: 6px;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 220px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button[type="submit"],
+.auth-form button[type="submit"] {
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Analyze page */
+
+.analyze-page .intro {
+  color: #475467;
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #475467;
+  margin-top: 0.25rem;
+}
+
+.char-counter--over {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.status-line {
+  color: #175cd3;
+  font-size: 0.95rem;
+}
+
+.error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.75rem 0;
+}
+
+.error-actions button {
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: none;
+  padding: 0.4rem 0.9rem;
+}
+
+/* Banners */
+
+.banner {
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.banner ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.banner--error {
+  background: #fef3f2;
+  border: 1px solid #fda29b;
+  color: #912018;
+}
+
+.banner--warning {
+  background: #fffaeb;
+  border: 1px solid #fec84b;
+  color: #93700c;
+}
+
+/* Results page */
+
+.result-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+
+.chip {
+  display: inline-block;
+  background: #eef2ff;
+  color: #3538cd;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.confidence-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.confidence-badge--high {
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.confidence-badge--medium {
+  background: #fffaeb;
+  color: #93700c;
+}
+
+.confidence-badge--low {
+  background: #fef3f2;
+  color: #912018;
+}
+
+.summary {
+  font-size: 1.05rem;
+}
+
+.disclaimer {
+  color: #667085;
+  font-size: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+.metadata-row {
+  color: #667085;
+  font-size: 0.8rem;
+}
+
+.results-page details {
+  margin: 1rem 0;
+}
+
+.results-page summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.results-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.results-actions button {
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: none;
+  padding: 0.5rem 1rem;
+}
+
+/* Status footer */
+
+.status-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: #667085;
+  border-top: 1px solid #eaecf0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #98a2b3;
+}
+
+.status-dot--connected {
+  background: #12b76a;
+}
+
+.status-dot--db-down {
+  background: #f79009;
+}
+
+.status-dot--unreachable {
+  background: #f04438;
 }
