@@ -7,7 +7,7 @@ A small full-stack application that lets an authenticated user paste text and ge
 Prerequisites: Docker, Node.js 20+.
 
 ```bash
-# 1. Postgres + backend API (built from backend/Dockerfile)
+# 1. The whole stack — Postgres, backend API, and frontend (all containerized)
 docker compose up -d --build
 curl http://localhost:3000/health
 
@@ -17,14 +17,11 @@ npm ci
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/ai_text_analyzer JWT_SECRET=dev-secret-change-me-please npm run migrate:up
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/ai_text_analyzer JWT_SECRET=dev-secret-change-me-please npm run seed
 
-# 3. Frontend, in a second terminal
-cd frontend
-npm ci
-cp .env.example .env
-npm run dev
 ```
 
 Open http://localhost:5173 and sign in with `demo@example.com` / `demo1234`.
+
+For frontend development with hot reload, run the dev server instead of the container: `docker compose stop frontend`, then `cd frontend && npm ci && cp .env.example .env && npm run dev` (same URL).
 
 `JWT_SECRET` has no default and is required by every script that imports the backend config (migrations themselves don't need it — `node-pg-migrate` is a standalone CLI — but `seed` does, since it goes through `src/db.ts`). Reuse the same value the compose backend uses (`dev-secret-change-me-please`, set in `docker-compose.yml`) so a token minted by one matches the other if you ever run the API from the host instead of the container.
 
@@ -109,7 +106,7 @@ flowchart LR
 
 **In-memory rate limiting, single instance only.** `express-rate-limit`'s default store lives in the process's memory, which is fine for one backend instance but silently stops being a real limit the moment you run two — each instance enforces its own counter, so the effective limit multiplies by instance count. Redis (`rate-limit-redis`) is the natural next step once the ECS service scales past `desired_count = 1`; it's not implemented here to keep the dependency list minimal for a demo footprint.
 
-**Monorepo.** `backend/` and `frontend/` share one repository and one `docker-compose.yml` so a reviewer can bring the whole thing up with two commands instead of coordinating two clones.
+**Monorepo.** `backend/` and `frontend/` share one repository and one `docker-compose.yml` so a reviewer brings the entire stack — database, API, and frontend — up with a single `docker compose up`, plus one migration step.
 
 ## AI design choices
 

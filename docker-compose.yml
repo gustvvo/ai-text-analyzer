@@ -34,5 +34,14 @@ services:
       postgres:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    ports:
+      # Same host port the dev server uses, so the README URL and the
+      # backend's CORS_ORIGIN work identically in both modes.
+      - "5173:8080"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
