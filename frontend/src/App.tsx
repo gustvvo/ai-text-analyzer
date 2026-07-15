@@ -1,59 +1,77 @@
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import "./App.css";
+import { useAuth } from "./auth/AuthContext";
+import { StatusFooter } from "./components/StatusFooter";
+import { TopBar } from "./components/TopBar";
+import { AnalyzePage } from "./pages/AnalyzePage";
+import { LoginPage } from "./pages/LoginPage";
+import { ResultsPage } from "./pages/ResultsPage";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { status } = useAuth();
+  const location = useLocation();
 
-type HealthResponse = {
-  status: string;
-  db: "connected" | "disconnected";
-};
+  if (status === "loading") {
+    return (
+      <main className="app-shell">
+        <p>Loading…</p>
+      </main>
+    );
+  }
 
-type HealthState =
-  | { kind: "loading" }
-  | { kind: "success"; health: HealthResponse }
-  | { kind: "error" };
-
-function App() {
-  const [state, setState] = useState<HealthState>({ kind: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchHealth() {
-      try {
-        const response = await fetch(`${API_URL}/health`);
-        if (!response.ok) {
-          throw new Error(`Unexpected status ${response.status}`);
-        }
-        const health = (await response.json()) as HealthResponse;
-        if (!cancelled) {
-          setState({ kind: "success", health });
-        }
-      } catch {
-        if (!cancelled) {
-          setState({ kind: "error" });
-        }
-      }
-    }
-
-    void fetchHealth();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  if (status === "anonymous") {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
 
   return (
-    <main className="app">
-      <h1>AI Text Analyzer</h1>
-      {state.kind === "loading" && <p>Checking backend…</p>}
-      {state.kind === "success" && (
-        <p>
-          Backend: {state.health.status} · DB: {state.health.db}
-        </p>
-      )}
-      {state.kind === "error" && <p>Backend unreachable</p>}
-    </main>
+    <>
+      <TopBar />
+      <main className="app-shell">{children}</main>
+    </>
+  );
+}
+
+function RootRedirect() {
+  const { status } = useAuth();
+
+  if (status === "loading") {
+    return (
+      <main className="app-shell">
+        <p>Loading…</p>
+      </main>
+    );
+  }
+
+  return <Navigate to={status === "authenticated" ? "/analyze" : "/login"} replace />;
+}
+
+function App() {
+  return (
+    <div className="app">
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/analyze"
+          element={
+            <ProtectedRoute>
+              <AnalyzePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/results/:id"
+          element={
+            <ProtectedRoute>
+              <ResultsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="*" element={<RootRedirect />} />
+      </Routes>
+      <StatusFooter />
+    </div>
   );
 }
 
