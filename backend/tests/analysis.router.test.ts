@@ -6,7 +6,12 @@ import { createApp } from "../src/app.js";
 import { config } from "../src/config.js";
 import { createAnalysisRouter } from "../src/analyses/analysis.router.js";
 import type { AnalysisRecord } from "../src/analyses/analysis.repository.js";
-import { createAnalysis, findAnalysisByIdForUser, listAnalysesForUser } from "../src/analyses/analysis.repository.js";
+import {
+  createAnalysis,
+  findAnalysisByIdForUser,
+  listAnalysesForUser,
+  reportAnalysis,
+} from "../src/analyses/analysis.repository.js";
 
 vi.mock("../src/analyses/analysis.repository.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/analyses/analysis.repository.js")>();
@@ -15,12 +20,14 @@ vi.mock("../src/analyses/analysis.repository.js", async (importOriginal) => {
     createAnalysis: vi.fn(),
     findAnalysisByIdForUser: vi.fn(),
     listAnalysesForUser: vi.fn(),
+    reportAnalysis: vi.fn(),
   };
 });
 
 const mockCreateAnalysis = vi.mocked(createAnalysis);
 const mockFindAnalysisByIdForUser = vi.mocked(findAnalysisByIdForUser);
 const mockListAnalysesForUser = vi.mocked(listAnalysesForUser);
+const mockReportAnalysis = vi.mocked(reportAnalysis);
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 const OTHER_USER_ID = "22222222-2222-2222-2222-222222222222";
@@ -50,6 +57,7 @@ function fakeAnalysisRecord(overrides: Partial<AnalysisRecord> = {}): AnalysisRe
     tokensIn: 10,
     tokensOut: 20,
     errorMessage: null,
+    reportedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
   };
@@ -59,6 +67,7 @@ beforeEach(() => {
   mockCreateAnalysis.mockReset();
   mockFindAnalysisByIdForUser.mockReset();
   mockListAnalysesForUser.mockReset();
+  mockReportAnalysis.mockReset();
 });
 
 describe("POST /analyze", () => {
@@ -159,6 +168,7 @@ describe("GET /analyses", () => {
       provider: "mock",
       model: "mock-analyzer-v1",
       promptVersion: "analysis.v1",
+      reportedAt: null,
       createdAt: "2026-01-01T00:00:00.000Z",
     });
     expect(response.body.analyses[0].inputText).toBeUndefined();
@@ -237,6 +247,74 @@ describe("GET /analyses/:id", () => {
 
     expect(response.status).toBe(404);
     expect(mockFindAnalysisByIdForUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /analyses/:id/report", () => {
+  it("returns 401 without a token", async () => {
+    const app = createApp();
+
+    const response = await request(app).post(`/analyses/${ANALYSIS_ID}/report`);
+
+    expect(response.status).toBe(401);
+    expect(mockReportAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("returns 200 with reportedAt set on the updated row", async () => {
+    const app = createApp();
+    const token = signToken();
+    const reportedAt = new Date("2026-01-02T00:00:00.000Z");
+    mockReportAnalysis.mockResolvedValue(fakeAnalysisRecord({ reportedAt }));
+
+    const response = await request(app)
+      .post(`/analyses/${ANALYSIS_ID}/report`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.analysis.id).toBe(ANALYSIS_ID);
+    expect(response.body.analysis.reportedAt).toBe(reportedAt.toISOString());
+    expect(mockReportAnalysis).toHaveBeenCalledWith(ANALYSIS_ID, USER_ID);
+  });
+
+  it("is idempotent: a second call still returns 200 (repository owns the no-op)", async () => {
+    const app = createApp();
+    const token = signToken();
+    const reportedAt = new Date("2026-01-02T00:00:00.000Z");
+    mockReportAnalysis.mockResolvedValue(fakeAnalysisRecord({ reportedAt }));
+
+    const first = await request(app).post(`/analyses/${ANALYSIS_ID}/report`).set("Authorization", `Bearer ${token}`);
+    const second = await request(app).post(`/analyses/${ANALYSIS_ID}/report`).set("Authorization", `Bearer ${token}`);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(second.body.analysis.reportedAt).toBe(reportedAt.toISOString());
+    expect(mockReportAnalysis).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns 404 for another user's row (no existence leak)", async () => {
+    const app = createApp();
+    const token = signToken(OTHER_USER_ID);
+    mockReportAnalysis.mockResolvedValue(null);
+
+    const response = await request(app)
+      .post(`/analyses/${ANALYSIS_ID}/report`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: "Not found" });
+    expect(mockReportAnalysis).toHaveBeenCalledWith(ANALYSIS_ID, OTHER_USER_ID);
+  });
+
+  it("returns 404 for a malformed id instead of a DB error", async () => {
+    const app = createApp();
+    const token = signToken();
+
+    const response = await request(app)
+      .post("/analyses/not-a-uuid/report")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(404);
+    expect(mockReportAnalysis).not.toHaveBeenCalled();
   });
 });
 

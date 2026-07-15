@@ -22,6 +22,7 @@ export interface AnalysisRecord {
   tokensIn: number | null;
   tokensOut: number | null;
   errorMessage: string | null;
+  reportedAt: Date | null;
   createdAt: Date;
 }
 
@@ -41,6 +42,7 @@ interface AnalysisRow {
   tokens_in: number | null;
   tokens_out: number | null;
   error_message: string | null;
+  reported_at: Date | null;
   created_at: Date;
 }
 
@@ -61,6 +63,7 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
     tokensIn: row.tokens_in,
     tokensOut: row.tokens_out,
     errorMessage: row.error_message,
+    reportedAt: row.reported_at,
     createdAt: row.created_at,
   };
 }
@@ -141,6 +144,24 @@ export async function findAnalysisByIdForUser(id: string, userId: string): Promi
     id,
     userId,
   ]);
+  const row = result.rows[0];
+  return row ? toRecord(row) : null;
+}
+
+/**
+ * Marks an analysis owned by `userId` as reported. Scoped to `id` AND
+ * `user_id`, identically to `findAnalysisByIdForUser`, so a row owned by
+ * someone else returns null (404), never a leak of its existence.
+ *
+ * Idempotent: `COALESCE` keeps the original `reported_at` on repeat calls
+ * instead of bumping it to a new `now()` each time, so calling this twice
+ * for the same row yields the exact same stored value both times.
+ */
+export async function reportAnalysis(id: string, userId: string): Promise<AnalysisRecord | null> {
+  const result = await pool.query<AnalysisRow>(
+    "UPDATE analyses SET reported_at = COALESCE(reported_at, now()) WHERE id = $1 AND user_id = $2 RETURNING *",
+    [id, userId],
+  );
   const row = result.rows[0];
   return row ? toRecord(row) : null;
 }

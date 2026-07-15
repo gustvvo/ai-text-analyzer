@@ -30,6 +30,7 @@ function fakeRecord(data: CreateAnalysisInput): AnalysisRecord {
     promptVersion: data.promptVersion,
     tokensIn: data.tokensIn,
     tokensOut: data.tokensOut,
+    reportedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
   };
 

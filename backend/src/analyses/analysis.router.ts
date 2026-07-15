@@ -42,6 +42,7 @@ function toDetail(record: AnalysisRecord) {
     promptVersion: record.promptVersion,
     tokensIn: record.tokensIn,
     tokensOut: record.tokensOut,
+    reportedAt: record.reportedAt,
     createdAt: record.createdAt,
   };
 }
@@ -57,6 +58,7 @@ function toListItem(record: AnalysisRecord) {
     provider: record.provider,
     model: record.model,
     promptVersion: record.promptVersion,
+    reportedAt: record.reportedAt,
     createdAt: record.createdAt,
   };
 }
@@ -145,6 +147,32 @@ export function createAnalysisRouter(options: AnalysisRouterOptions = {}): Route
 
     try {
       const record = await analysisRepository.findAnalysisByIdForUser(parsedId.data, req.user.id);
+      if (!record) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      res.status(200).json({ analysis: toDetail(record) });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post("/analyses/:id/report", requireAuth, async (req, res, next) => {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const parsedId = idParamSchema.safeParse(req.params.id);
+    if (!parsedId.success) {
+      // Same rationale as GET /analyses/:id: a malformed id can't belong to
+      // anyone, so it gets the same 404 as a genuinely missing/foreign row.
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    try {
+      const record = await analysisRepository.reportAnalysis(parsedId.data, req.user.id);
       if (!record) {
         res.status(404).json({ error: "Not found" });
         return;
