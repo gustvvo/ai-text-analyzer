@@ -73,6 +73,7 @@ variable "aws_access_key_dummy" {
   description = "Placeholder AWS access key used solely to satisfy the provider during credential-less plan/validate"
   type        = string
   default     = "test"
+  sensitive   = true
 }
 
 variable "aws_secret_key_dummy" {

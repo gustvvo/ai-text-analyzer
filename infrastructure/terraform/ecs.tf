@@ -67,10 +67,10 @@ resource "aws_ecs_task_definition" "backend" {
         }
       ]
 
-      # Non-secret configuration only. AI_PROVIDER=anthropic is the
-      # documented production choice; switching to "openai" only requires
-      # this value plus the matching secret to change — the app already
-      # supports both providers via AI_PROVIDER.
+      # Non-secret configuration. AI_PROVIDER=anthropic is the default; both
+      # provider API keys are mounted via the secrets block below. Switching
+      # providers requires changing AI_PROVIDER and redeploy; the backend
+      # fails fast at boot if the selected provider's key secret has no value.
       environment = [
         { name = "PORT", value = tostring(var.backend_port) },
         { name = "CORS_ORIGIN", value = var.cors_origin },
@@ -92,6 +92,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
         { name = "JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt_secret.arn },
         { name = "ANTHROPIC_API_KEY", valueFrom = aws_secretsmanager_secret.anthropic_api_key.arn },
+        { name = "OPENAI_API_KEY", valueFrom = aws_secretsmanager_secret.openai_api_key.arn },
       ]
 
       logConfiguration = {

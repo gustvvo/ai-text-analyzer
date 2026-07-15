@@ -56,6 +56,7 @@ resource "aws_iam_role_policy" "ecs_execution" {
           aws_secretsmanager_secret.database_url.arn,
           aws_secretsmanager_secret.jwt_secret.arn,
           aws_secretsmanager_secret.anthropic_api_key.arn,
+          aws_secretsmanager_secret.openai_api_key.arn,
         ]
       }
     ]
