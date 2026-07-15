@@ -176,6 +176,48 @@ Model choice is the dominant lever on variable cost — roughly a 37x spread bet
 
 ## Data, retention & PII
 
+### Data model
+
+Two domain tables, defined as versioned migrations in [`backend/migrations/`](backend/migrations/) (`npm run migrate:up` materializes them; every change ships as an `up()`/`down()` pair). A third table, `pgmigrations`, is node-pg-migrate's own bookkeeping.
+
+```mermaid
+erDiagram
+    users ||--o{ analyses : "owns (ON DELETE CASCADE)"
+
+    users {
+        uuid id PK
+        text email UK
+        text password_hash
+        timestamptz created_at
+    }
+
+    analyses {
+        uuid id PK
+        uuid user_id FK
+        text input_text
+        text summary
+        text category
+        real confidence
+        jsonb key_points
+        jsonb warnings
+        text provider
+        text model
+        text prompt_version
+        int tokens_in
+        int tokens_out
+        text status
+        text error_message
+        text raw_response
+        int duration_ms
+        int attempts
+        timestamptz reported_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+```
+
+`analyses` deliberately serves three roles in one row — the domain record (input + structured result), the audit trail (`provider`, `model`, `prompt_version`, token counts, `status` with a `CHECK` on completed/failed/processing), and the replayable trace (`raw_response`, `duration_ms`, `attempts`). A composite index on `(user_id, created_at DESC)` serves the history listing; ownership is enforced in every query (`WHERE id AND user_id`), so another user's row is indistinguishable from a missing one.
+
 **Stored:** per user, an email and a bcrypt password hash. Per analysis: the input text, the structured result (summary/category/confidence/key points/warnings), provider/model/prompt version, input/output token counts, status, a short generic error message on failure, `reported_at` when a user has flagged the result, and a per-row replayable trace — `duration_ms`, `attempts`, and the provider's raw, pre-normalization/validation response text (`raw_response`). That last one is a deliberate reversal of an earlier decision to not persist raw provider output: it's kept for auditability and replay (diffing raw vs. normalized, debugging a bad or failed output after the fact), it is **never exposed via the API** (see Auditability, below, and `analysis.router.ts`'s `toDetail`), and it's covered by the same retention policy and PII considerations as `input_text` — both are free-form text with no separate handling today.
 
 **Not stored:** any model chain-of-thought, and no payment data of any kind (there is no billing surface in this system).
