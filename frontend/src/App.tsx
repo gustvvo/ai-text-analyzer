@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthContext";
 import { StatusFooter } from "./components/StatusFooter";
 import { TopBar } from "./components/TopBar";
 import { AnalyzePage } from "./pages/AnalyzePage";
+import { HistoryPage } from "./pages/HistoryPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ResultsPage } from "./pages/ResultsPage";
 
@@ -64,6 +65,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ResultsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <HistoryPage />
             </ProtectedRoute>
           }
         />

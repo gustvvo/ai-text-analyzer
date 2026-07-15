@@ -4,7 +4,9 @@ import type {
   AuthResponse,
   GetAnalysisResponse,
   HealthResponse,
+  ListAnalysesResponse,
   MeResponse,
+  ReportAnalysisResponse,
 } from "./types";
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
@@ -115,6 +117,14 @@ export function analyze(text: string): Promise<AnalyzeResponse> {
 
 export function getAnalysis(id: string): Promise<GetAnalysisResponse> {
   return request<GetAnalysisResponse>(`/analyses/${id}`);
+}
+
+export function listAnalyses(limit: number, offset: number): Promise<ListAnalysesResponse> {
+  return request<ListAnalysesResponse>(`/analyses?limit=${limit}&offset=${offset}`);
+}
+
+export function reportAnalysis(id: string): Promise<ReportAnalysisResponse> {
+  return request<ReportAnalysisResponse>(`/analyses/${id}/report`, { method: "POST" });
 }
 
 export function health(): Promise<HealthResponse> {

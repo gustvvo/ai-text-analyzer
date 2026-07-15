@@ -32,6 +32,21 @@ export interface AnalysisDetail {
   promptVersion: string;
   tokensIn: number | null;
   tokensOut: number | null;
+  reportedAt: string | null;
+  createdAt: string;
+}
+
+/** Slim item for GET /analyses — no inputText, mirrors the backend's toListItem. */
+export interface AnalysisListItem {
+  id: string;
+  status: AnalysisStatus;
+  category: string | null;
+  confidence: number | null;
+  summary: string | null;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  reportedAt: string | null;
   createdAt: string;
 }
 
@@ -41,6 +56,16 @@ export interface AnalyzeResponse {
 
 export interface GetAnalysisResponse {
   analysis: AnalysisDetail;
+}
+
+export interface ReportAnalysisResponse {
+  analysis: AnalysisDetail;
+}
+
+export interface ListAnalysesResponse {
+  analyses: AnalysisListItem[];
+  limit: number;
+  offset: number;
 }
 
 export interface HealthResponse {

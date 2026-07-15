@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ApiError, getAnalysis } from "../api/client";
+import { ApiError, getAnalysis, reportAnalysis } from "../api/client";
 import type { AnalysisDetail } from "../api/types";
 import { ConfidenceBadge } from "../components/ConfidenceBadge";
+import { ErrorBanner } from "../components/ErrorBanner";
 import { WarningsBanner } from "../components/WarningsBanner";
 
 type LoadState =
@@ -23,6 +24,9 @@ export function ResultsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [justReported, setJustReported] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +51,21 @@ export function ResultsPage() {
     };
   }, [id]);
 
+  async function submitReport() {
+    if (state.kind !== "success") return;
+    setReportSubmitting(true);
+    setReportError(null);
+    try {
+      const res = await reportAnalysis(state.analysis.id);
+      setState({ kind: "success", analysis: res.analysis });
+      setJustReported(true);
+    } catch (err) {
+      setReportError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setReportSubmitting(false);
+    }
+  }
+
   if (state.kind === "loading") {
     return <p>Loading analysis…</p>;
   }
@@ -70,6 +89,7 @@ export function ResultsPage() {
   }
 
   const { analysis } = state;
+  const isReported = analysis.reportedAt !== null;
 
   return (
     <div className="results-page">
@@ -98,6 +118,21 @@ export function ResultsPage() {
       )}
 
       <p className="disclaimer">AI-generated analysis — it may contain errors. Review before relying on it.</p>
+
+      <div className="report-action">
+        <button
+          type="button"
+          className="report-btn"
+          onClick={() => void submitReport()}
+          disabled={reportSubmitting || isReported}
+        >
+          {isReported ? "Reported" : reportSubmitting ? "Reporting…" : "Report this result"}
+        </button>
+        {justReported && isReported && (
+          <p className="report-confirmation">Reported — thank you. This helps us review model quality.</p>
+        )}
+        {reportError && <ErrorBanner message={reportError} />}
+      </div>
 
       <p className="metadata-row">
         {analysis.provider} · {analysis.model} · {analysis.promptVersion} · tokens in/out:{" "}
